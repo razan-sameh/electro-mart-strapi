@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "specification_types",
+  "info": {
+    "singularName": "specification-type",
+    "pluralName": "specification-types",
+    "displayName": "Specification Type"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true
+    },
+    "specification_values": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::specification-value.specification-value",
+      "mappedBy": "specification_type"
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::category.category",
+      "mappedBy": "specification_types"
+    }
+  }
+}

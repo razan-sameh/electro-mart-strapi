@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "specification_values",
+  "info": {
+    "singularName": "specification-value",
+    "pluralName": "specification-values",
+    "displayName": "Specification Value"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "value": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true
+    },
+    "specification_type": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::specification-type.specification-type",
+      "inversedBy": "specification_values"
+    },
+    "products": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::product.product",
+      "inversedBy": "specification_values"
+    }
+  }
+}
