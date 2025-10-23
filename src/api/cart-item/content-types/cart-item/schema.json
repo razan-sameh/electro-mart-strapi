@@ -30,6 +30,12 @@
       "relation": "manyToOne",
       "target": "api::cart.cart",
       "inversedBy": "cart_items"
+    },
+    "product_color": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::product-color.product-color",
+      "inversedBy": "cart_items"
     }
   }
 }

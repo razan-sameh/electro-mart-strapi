@@ -37,29 +37,29 @@
       "type": "decimal",
       "pluginOptions": {
         "i18n": {
-          "localized": true
+          "localized": false
         }
       },
-      "required": true
+      "required": false
     },
     "StockQuantity": {
       "type": "integer",
       "pluginOptions": {
         "i18n": {
-          "localized": true
+          "localized": false
         }
       },
-      "required": true
+      "required": false
     },
     "ImageURL": {
       "type": "media",
       "pluginOptions": {
         "i18n": {
-          "localized": true
+          "localized": false
         }
       },
       "multiple": true,
-      "required": true,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
@@ -114,6 +114,24 @@
       "relation": "manyToMany",
       "target": "api::special-offer.special-offer",
       "mappedBy": "products"
+    },
+    "averageRating": {
+      "type": "decimal",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      },
+      "min": 1,
+      "max": 5
+    },
+    "totalReviews": {
+      "type": "integer",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      }
     }
   }
 }
