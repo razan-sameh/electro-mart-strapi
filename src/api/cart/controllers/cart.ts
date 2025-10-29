@@ -11,27 +11,27 @@ export default factories.createCoreController(
         return ctx.unauthorized("You must be authenticated");
       }
 
-      // Get locale from query params, default to 'en'
       const locale = ctx.query.locale || "en";
-      
+
       let carts = (await strapi.entityService.findMany("api::cart.cart", {
         filters: { users_permissions_user: user.id },
         populate: {
           cart_items: {
             populate: {
               product: {
-                filters: {
-                  locale: locale, // Add locale filter here
-                },
                 populate: {
                   localizations: true,
                   ImageURL: true,
+                  brand: true,
                   special_offers: {
-                    populate: "*",
+                    populate: ["localizations"],
                   },
                 },
               },
-              product_color: true,
+              // product_color: true,
+              product_color: {
+                populate: ["localizations"], // ✅ أضف دي
+              },
             },
           },
         },
@@ -41,15 +41,63 @@ export default factories.createCoreController(
 
       if (!cart) {
         cart = (await strapi.entityService.create("api::cart.cart", {
-          data: {
-            users_permissions_user: user.id,
-          },
+          data: { users_permissions_user: user.id },
         })) as Cart;
+      }
+
+      for (const item of cart.cart_items || []) {
+        const product = item.product;
+
+        if (product?.locale === locale) {
+          continue;
+        }
+
+        const localized = product?.localizations?.find(
+          (loc: any) => loc.locale === locale
+        );
+
+        if (localized) {
+          const localizedProduct = await strapi.db
+            .query("api::product.product")
+            .findOne({
+              where: { id: localized.id },
+              populate: {
+                localizations: true,
+                ImageURL: true,
+                brand: true,
+                product_colors: {
+                  populate: ["localizations"], // include color localizations too
+                },
+                special_offers: {
+                  populate: ["localizations"],
+                },
+              },
+            });
+
+          item.product = localizedProduct;
+
+          const color = item.product_color;
+          if (color?.locale !== locale) {
+            const localizedColor = color?.localizations?.find(
+              (loc: any) => loc.locale === locale
+            );
+            if (localizedColor) {
+              const localizedProductColor = await strapi.db
+                .query("api::product-color.product-color")
+                .findOne({
+                  where: { id: localizedColor.id },
+                  populate: ["localizations"],
+                });
+              item.product_color = localizedProductColor;
+            }
+          }
+        } else {
+          item.product = product;
+        }
       }
 
       return { data: cart };
     },
-
     async addItem(ctx) {
       const user = ctx.state.user;
 
@@ -88,7 +136,6 @@ export default factories.createCoreController(
           data: { users_permissions_user: user.id },
         })) as Cart;
       }
-      console.log("cart in strapi", cart);
 
       const product = await strapi.db.query("api::product.product").findOne({
         where: { documentId: productId },
