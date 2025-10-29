@@ -415,6 +415,44 @@ export interface ApiBrandBrand extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBuyNowBuyNow extends Struct.CollectionTypeSchema {
+  collectionName: 'buy_nows';
+  info: {
+    displayName: 'buy-now';
+    pluralName: 'buy-nows';
+    singularName: 'buy-now';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::buy-now.buy-now'
+    > &
+      Schema.Attribute.Private;
+    product: Schema.Attribute.Relation<'oneToOne', 'api::product.product'>;
+    product_color: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::product-color.product-color'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    users_permissions_user: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
 export interface ApiCartItemCartItem extends Struct.CollectionTypeSchema {
   collectionName: 'cart_items';
   info: {
@@ -554,37 +592,21 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: true;
-    };
-  };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    locale: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::order-item.order-item'
-    >;
+    > &
+      Schema.Attribute.Private;
     order: Schema.Attribute.Relation<'manyToOne', 'api::order.order'>;
     product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
-    Quantity: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    UnitPrice: Schema.Attribute.Decimal &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
+    Quantity: Schema.Attribute.Integer & Schema.Attribute.Required;
+    UnitPrice: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -601,17 +623,13 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: true;
-    };
-  };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    locale: Schema.Attribute.String;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::order.order'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::order.order'> &
+      Schema.Attribute.Private;
     order_items: Schema.Attribute.Relation<
       'oneToMany',
       'api::order-item.order-item'
@@ -620,28 +638,11 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       ['Pending', 'Shipped', 'Delivered', 'Cancelled']
     > &
       Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
       Schema.Attribute.DefaultTo<'Pending'>;
     payment: Schema.Attribute.Relation<'oneToOne', 'api::payment.payment'>;
     publishedAt: Schema.Attribute.DateTime;
-    ShippingAddress: Schema.Attribute.Text &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    TotalAmount: Schema.Attribute.Decimal &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
+    ShippingAddress: Schema.Attribute.JSON & Schema.Attribute.Required;
+    TotalAmount: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -662,45 +663,25 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: true;
-    };
-  };
   attributes: {
-    Amount: Schema.Attribute.Decimal &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
+    Amount: Schema.Attribute.Decimal & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    locale: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::payment.payment'
-    >;
+    > &
+      Schema.Attribute.Private;
     order: Schema.Attribute.Relation<'oneToOne', 'api::order.order'>;
     payment_status: Schema.Attribute.Enumeration<
-      ['Pending', 'Success', 'Failed']
+      ['processing', 'succeeded', 'failed']
     > &
       Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.DefaultTo<'Pending'>;
+      Schema.Attribute.DefaultTo<'processing'>;
     PaymentMethod: Schema.Attribute.Enumeration<['Cash', 'Card']> &
       Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
       Schema.Attribute.DefaultTo<'Cash'>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
@@ -726,6 +707,7 @@ export interface ApiProductColorProductColor
     };
   };
   attributes: {
+    buy_now: Schema.Attribute.Relation<'oneToOne', 'api::buy-now.buy-now'>;
     cart_items: Schema.Attribute.Relation<
       'oneToMany',
       'api::cart-item.cart-item'
@@ -789,6 +771,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
         number
       >;
     brand: Schema.Attribute.Relation<'manyToOne', 'api::brand.brand'>;
+    buy_now: Schema.Attribute.Relation<'oneToOne', 'api::buy-now.buy-now'>;
     cart_items: Schema.Attribute.Relation<
       'oneToMany',
       'api::cart-item.cart-item'
@@ -1523,6 +1506,7 @@ export interface PluginUsersPermissionsUser
   };
   attributes: {
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    buy_now: Schema.Attribute.Relation<'oneToOne', 'api::buy-now.buy-now'>;
     cart: Schema.Attribute.Relation<'oneToOne', 'api::cart.cart'>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
     confirmed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -1554,6 +1538,7 @@ export interface PluginUsersPermissionsUser
       'manyToOne',
       'plugin::users-permissions.role'
     >;
+    stripeCustomerId: Schema.Attribute.Text;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1577,6 +1562,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::brand.brand': ApiBrandBrand;
+      'api::buy-now.buy-now': ApiBuyNowBuyNow;
       'api::cart-item.cart-item': ApiCartItemCartItem;
       'api::cart.cart': ApiCartCart;
       'api::category.category': ApiCategoryCategory;

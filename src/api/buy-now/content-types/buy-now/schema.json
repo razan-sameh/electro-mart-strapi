@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "buy_nows",
+  "info": {
+    "singularName": "buy-now",
+    "pluralName": "buy-nows",
+    "displayName": "buy-now"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "expiresAt": {
+      "type": "datetime"
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "buy_now"
+    },
+    "product": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::product.product",
+      "inversedBy": "buy_now"
+    },
+    "product_color": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::product-color.product-color",
+      "inversedBy": "buy_now"
+    },
+    "quantity": {
+      "type": "integer"
+    }
+  }
+}

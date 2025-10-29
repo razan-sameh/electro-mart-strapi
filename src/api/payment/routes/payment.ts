@@ -1,7 +1,12 @@
-/**
- * payment router
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreRouter('api::payment.payment');
+export default {
+  routes: [
+    {
+      method: "POST",
+      path: "/payment/webhook",
+      handler: "payment.webhook",
+      config: {
+        auth: false, // 🔥 Stripe doesn't use JWT
+      },
+    },
+  ],
+};

@@ -9,43 +9,24 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": true
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "Amount": {
       "type": "decimal",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
       "required": true
     },
     "payment_status": {
       "type": "enumeration",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
       "required": true,
-      "default": "Pending",
+      "default": "processing",
       "enum": [
-        "Pending",
-        "Success",
-        "Failed"
+        "processing",
+        "succeeded",
+        "failed"
       ]
     },
     "PaymentMethod": {
       "type": "enumeration",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
       "required": true,
       "default": "Cash",
       "enum": [

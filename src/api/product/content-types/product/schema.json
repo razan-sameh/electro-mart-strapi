@@ -132,6 +132,12 @@
           "localized": false
         }
       }
+    },
+    "buy_now": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::buy-now.buy-now",
+      "mappedBy": "product"
     }
   }
 }

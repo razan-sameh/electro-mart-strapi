@@ -9,37 +9,14 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": true
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "TotalAmount": {
       "type": "decimal",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
-      "required": true
-    },
-    "ShippingAddress": {
-      "type": "text",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
       "required": true
     },
     "order_status": {
       "type": "enumeration",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
       "required": true,
       "default": "Pending",
       "enum": [
@@ -66,6 +43,10 @@
       "relation": "oneToOne",
       "target": "api::payment.payment",
       "mappedBy": "order"
+    },
+    "ShippingAddress": {
+      "type": "json",
+      "required": true
     }
   }
 }

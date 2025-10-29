@@ -83,6 +83,15 @@
       "relation": "oneToMany",
       "target": "api::review.review",
       "mappedBy": "users_permissions_user"
+    },
+    "stripeCustomerId": {
+      "type": "text"
+    },
+    "buy_now": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::buy-now.buy-now",
+      "mappedBy": "users_permissions_user"
     }
   }
 }

@@ -44,6 +44,12 @@
       "relation": "oneToMany",
       "target": "api::cart-item.cart-item",
       "mappedBy": "product_color"
+    },
+    "buy_now": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::buy-now.buy-now",
+      "mappedBy": "product_color"
     }
   }
 }
