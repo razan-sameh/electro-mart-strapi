@@ -463,21 +463,17 @@ export interface ApiCartItemCartItem extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: true;
-    };
-  };
   attributes: {
     cart: Schema.Attribute.Relation<'manyToOne', 'api::cart.cart'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    locale: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::cart-item.cart-item'
-    >;
+    > &
+      Schema.Attribute.Private;
     product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'>;
     product_color: Schema.Attribute.Relation<
       'manyToOne',
@@ -501,11 +497,6 @@ export interface ApiCartCart extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: true;
-    };
-  };
   attributes: {
     cart_items: Schema.Attribute.Relation<
       'oneToMany',
@@ -514,8 +505,9 @@ export interface ApiCartCart extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    locale: Schema.Attribute.String;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::cart.cart'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::cart.cart'> &
+      Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -590,7 +582,7 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
     singularName: 'order-item';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
@@ -621,7 +613,7 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
     singularName: 'order';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;

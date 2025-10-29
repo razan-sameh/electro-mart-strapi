@@ -3,18 +3,15 @@ import { factories } from "@strapi/strapi";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-function calculateDiscountedPrice(product: {
-  price: number;
-  specialOffers?: any[];
-}) {
+function calculateDiscountedPrice(product) {
   let discountedPrice = product.price;
-  if (product.specialOffers?.length) {
-    const offer = product.specialOffers[0];
-    if (offer?.discountType === "percentage") {
+  if (product.special_offers?.length) {
+    const offer = product.special_offers[0];
+    if (offer?.discount_type === "percentage") {
       discountedPrice =
-        product.price - product.price * (offer.discountValue / 100);
-    } else if (offer?.discountType === "fixed") {
-      discountedPrice = product.price - offer.discountValue;
+        product.price - product.price * (offer.discount_value / 100);
+    } else if (offer?.discount_type === "fixed") {
+      discountedPrice = product.price - offer.discount_value;
     }
   }
   return Math.max(0, discountedPrice);
@@ -107,7 +104,9 @@ export default factories.createCoreController(
             .query("api::product.product")
             .findOne({
               where: { documentId: item.product.documentId },
-              populate: ["special_offers"],
+              populate: {
+                special_offers: true,
+              },
             });
 
           if (!product) {
@@ -117,10 +116,11 @@ export default factories.createCoreController(
 
           const price = Number(product.Price) || 0;
           const quantity = Number(item.quantity) || 0;
+
           const discountedPrice = calculateDiscountedPrice({
             ...product,
             price,
-            specialOffers: product.special_offers || [],
+            special_offers: product.special_offers || [], // 👈 use snake_case to match function
           });
 
           totalAmount += discountedPrice * quantity;
@@ -188,8 +188,7 @@ export default factories.createCoreController(
           // Now create order items
           for (const item of cartItems) {
             // Determine the actual product ID
-            const productId =
-              item.product?.id || item.product?.documentId || item.product; // in case product is just a string
+            const productId = item.product?.documentId ; // in case product is just a string
 
             if (!productId) {
               console.warn("⚠️ Missing product ID for cart item:", item);

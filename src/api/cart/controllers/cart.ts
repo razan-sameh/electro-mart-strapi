@@ -11,13 +11,25 @@ export default factories.createCoreController(
         return ctx.unauthorized("You must be authenticated");
       }
 
+      // Get locale from query params, default to 'en'
+      const locale = ctx.query.locale || "en";
+      
       let carts = (await strapi.entityService.findMany("api::cart.cart", {
         filters: { users_permissions_user: user.id },
         populate: {
           cart_items: {
             populate: {
               product: {
-                populate: ["ImageURL"],
+                filters: {
+                  locale: locale, // Add locale filter here
+                },
+                populate: {
+                  localizations: true,
+                  ImageURL: true,
+                  special_offers: {
+                    populate: "*",
+                  },
+                },
               },
               product_color: true,
             },
