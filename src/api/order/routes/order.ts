@@ -1,5 +1,26 @@
 export default {
   routes: [
+    // ✅ Default CRUD routes (find and findOne)
+    {
+      method: "GET",
+      path: "/orders",
+      handler: "order.find",
+      config: {
+        auth: {
+          required: true,
+        },
+      },
+    },
+    {
+      method: "GET",
+      path: "/orders/:id",
+      handler: "order.findOne",
+      config: {
+        auth: {
+          required: true,
+        },
+      },
+    },
     {
       method: "POST",
       path: "/orders/create-setup-intent",

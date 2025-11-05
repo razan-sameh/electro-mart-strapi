@@ -20,6 +20,164 @@ function calculateDiscountedPrice(product) {
 export default factories.createCoreController(
   "api::order.order",
   ({ strapi }) => ({
+    // ✅ ADD DEFAULT CRUD METHODS
+    async find(ctx) {
+      // Only allow users to see their own orders
+      const user = ctx.state.user;
+      if (!user) return ctx.unauthorized("You must be logged in");
+
+      const locale = ctx.query.locale || "en";
+
+      // Fetch orders with full population
+      const orders = await strapi.entityService.findMany("api::order.order", {
+        filters: { user: { id: user.id } },
+        populate: {
+          payment: true,
+          order_items: {
+            populate: {
+              product: {
+                populate: {
+                  localizations: true,
+                  ImageURL: true,
+                  brand: true,
+                  special_offers: {
+                    populate: ["localizations"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Post-process: Replace products with localized versions
+      const ordersArray = Array.isArray(orders) ? orders : [orders];
+
+      for (const order of ordersArray) {
+        const orderItems = (order as any).order_items || [];
+        for (const item of orderItems) {
+          const product = item.product;
+
+          if (product?.locale === locale) {
+            continue;
+          }
+
+          const localized = product?.localizations?.find(
+            (loc: any) => loc.locale === locale
+          );
+
+          if (localized) {
+            const localizedProduct = await strapi.db
+              .query("api::product.product")
+              .findOne({
+                where: { id: localized.id },
+                populate: {
+                  localizations: true,
+                  ImageURL: true,
+                  brand: true,
+                  special_offers: {
+                    populate: ["localizations"],
+                  },
+                },
+              });
+
+            item.product = localizedProduct;
+          }
+        }
+      }
+
+      return {
+        data: ordersArray,
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: ordersArray.length,
+            pageCount: 1,
+            total: ordersArray.length,
+          },
+        },
+      };
+    },
+
+    async findOne(ctx) {
+      const user = ctx.state.user;
+      if (!user) return ctx.unauthorized("You must be logged in");
+
+      const { id } = ctx.params;
+      const locale = ctx.query.locale || "en";
+
+      // Fetch order with full population
+      const entity = await strapi.entityService.findOne(
+        "api::order.order",
+        id,
+        {
+          populate: {
+            user: true,
+            payment: true,
+            order_items: {
+              populate: {
+                product: {
+                  populate: {
+                    localizations: true,
+                    ImageURL: true,
+                    brand: true,
+                    special_offers: {
+                      populate: ["localizations"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+      );
+
+      // Check if order exists and belongs to user
+      if (!entity) {
+        return ctx.notFound("Order not found");
+      }
+
+      // Type assertion to access user property
+      const orderWithUser = entity as any;
+
+      if (orderWithUser.user?.id !== user.id) {
+        return ctx.notFound("Order not found");
+      }
+
+      // Post-process: Replace products with localized versions
+      const orderItems = orderWithUser.order_items || [];
+      for (const item of orderItems) {
+        const product = item.product;
+
+        if (product?.locale === locale) {
+          continue;
+        }
+
+        const localized = product?.localizations?.find(
+          (loc: any) => loc.locale === locale
+        );
+
+        if (localized) {
+          const localizedProduct = await strapi.db
+            .query("api::product.product")
+            .findOne({
+              where: { id: localized.id },
+              populate: {
+                localizations: true,
+                ImageURL: true,
+                brand: true,
+                special_offers: {
+                  populate: ["localizations"],
+                },
+              },
+            });
+
+          item.product = localizedProduct;
+        }
+      }
+
+      return { data: entity };
+    },
     // ----------------------
     // STEP 2: Save card (SetupIntent)
     // ----------------------
@@ -188,7 +346,7 @@ export default factories.createCoreController(
           // Now create order items
           for (const item of cartItems) {
             // Determine the actual product ID
-            const productId = item.product?.documentId ; // in case product is just a string
+            const productId = item.product?.documentId; // in case product is just a string
 
             if (!productId) {
               console.warn("⚠️ Missing product ID for cart item:", item);
@@ -209,7 +367,7 @@ export default factories.createCoreController(
             const data = {
               Quantity: item.quantity,
               UnitPrice: String(Number(productRecord.Price).toFixed(2)),
-              product: productRecord.id,
+              product: productRecord.documentId,
               order: order.documentId, // make sure `order` is defined
             };
 

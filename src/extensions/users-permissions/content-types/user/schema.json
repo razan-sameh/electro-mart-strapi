@@ -92,6 +92,17 @@
       "relation": "oneToOne",
       "target": "api::buy-now.buy-now",
       "mappedBy": "users_permissions_user"
+    },
+    "addresses": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::address.address"
+    },
+    "phone": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::phone.phone",
+      "mappedBy": "user"
     }
   }
 }
