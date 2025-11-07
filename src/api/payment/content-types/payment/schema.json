@@ -25,20 +25,17 @@
         "failed"
       ]
     },
-    "PaymentMethod": {
-      "type": "enumeration",
-      "required": true,
-      "default": "Cash",
-      "enum": [
-        "Cash",
-        "Card"
-      ]
-    },
     "order": {
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::order.order",
       "inversedBy": "payment"
+    },
+    "payment_method": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::payment-method.payment-method",
+      "inversedBy": "payments"
     }
   }
 }

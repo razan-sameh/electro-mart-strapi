@@ -30,6 +30,21 @@
       "relation": "manyToOne",
       "target": "api::order.order",
       "inversedBy": "order_items"
+    },
+    "discount_value": {
+      "type": "decimal"
+    },
+    "selected_color": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::product-color.product-color",
+      "inversedBy": "order_items"
+    },
+    "total": {
+      "type": "decimal"
+    },
+    "subtotal": {
+      "type": "decimal"
     }
   }
 }

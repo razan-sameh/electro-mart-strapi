@@ -3,19 +3,34 @@ import { factories } from "@strapi/strapi";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-function calculateDiscountedPrice(product) {
-  let discountedPrice = product.price;
+function calculateDiscountedPrice(product: any) {
+  const originalPrice = Number(product.price) || 0;
+  let discountedPrice = originalPrice;
+  let discountAmount = 0;
+
   if (product.special_offers?.length) {
     const offer = product.special_offers[0];
+    const discountValue = Number(offer.discount_value) || 0;
+
     if (offer?.discount_type === "percentage") {
-      discountedPrice =
-        product.price - product.price * (offer.discount_value / 100);
+      discountAmount = originalPrice * (discountValue / 100);
+      discountedPrice = originalPrice - discountAmount;
     } else if (offer?.discount_type === "fixed") {
-      discountedPrice = product.price - offer.discount_value;
+      discountAmount = discountValue;
+      discountedPrice = originalPrice - discountAmount;
     }
   }
-  return Math.max(0, discountedPrice);
+
+  // تأكدي إن السعر بعد الخصم مش بالسالب
+  discountedPrice = Math.max(0, discountedPrice);
+  discountAmount = Math.min(originalPrice, discountAmount);
+
+  return {
+    discountedPrice, // السعر بعد الخصم
+    discountAmount,  // المبلغ المخصوم فعلاً
+  };
 }
+
 
 export default factories.createCoreController(
   "api::order.order",
@@ -32,7 +47,17 @@ export default factories.createCoreController(
       const orders = await strapi.entityService.findMany("api::order.order", {
         filters: { user: { id: user.id } },
         populate: {
-          payment: true,
+          payment: {
+            populate: {
+              payment_method: true,
+            },
+          },
+          address: {
+            populate: {
+              phone: true, // ✅ this ensures phone data inside address is also included
+            },
+          },
+          user: true,
           order_items: {
             populate: {
               product: {
@@ -40,11 +65,13 @@ export default factories.createCoreController(
                   localizations: true,
                   ImageURL: true,
                   brand: true,
+                  category: true,
                   special_offers: {
                     populate: ["localizations"],
                   },
                 },
               },
+              selected_color: true,
             },
           },
         },
@@ -75,6 +102,7 @@ export default factories.createCoreController(
                   localizations: true,
                   ImageURL: true,
                   brand: true,
+                  category: true,
                   special_offers: {
                     populate: ["localizations"],
                   },
@@ -107,30 +135,38 @@ export default factories.createCoreController(
       const locale = ctx.query.locale || "en";
 
       // Fetch order with full population
-      const entity = await strapi.entityService.findOne(
-        "api::order.order",
-        id,
-        {
-          populate: {
-            user: true,
-            payment: true,
-            order_items: {
-              populate: {
-                product: {
-                  populate: {
-                    localizations: true,
-                    ImageURL: true,
-                    brand: true,
-                    special_offers: {
-                      populate: ["localizations"],
-                    },
+      const entity = await strapi.db.query("api::order.order").findOne({
+        where: { documentId: id, user: { id: user.id } }, // 🔑 query by documentId + user
+        populate: {
+          user: true,
+          payment: {
+            populate: {
+              payment_method: true,
+            },
+          },
+          address: {
+            populate: {
+              phone: true, // ✅ this ensures phone data inside address is also included
+            },
+          },
+          order_items: {
+            populate: {
+              product: {
+                populate: {
+                  localizations: true,
+                  ImageURL: true,
+                  brand: true,
+                  category: true,
+                  special_offers: {
+                    populate: ["localizations"],
                   },
                 },
               },
+              selected_color: true,
             },
           },
-        }
-      );
+        },
+      });
 
       // Check if order exists and belongs to user
       if (!entity) {
@@ -166,6 +202,7 @@ export default factories.createCoreController(
                 localizations: true,
                 ImageURL: true,
                 brand: true,
+                category: true,
                 special_offers: {
                   populate: ["localizations"],
                 },
@@ -255,33 +292,41 @@ export default factories.createCoreController(
         if (!cartItems?.length || !paymentMethodId)
           return ctx.badRequest("Missing data");
 
-        // 1️⃣ Calculate totalAmount
+        // 🧮 Initialize totals
+        let subtotal = 0;
+        let discount_total = 0;
         let totalAmount = 0;
+
+        // 1️⃣ Loop through items to calculate totals
         for (const item of cartItems) {
           const product = await strapi.db
             .query("api::product.product")
             .findOne({
               where: { documentId: item.product.documentId },
-              populate: {
-                special_offers: true,
-              },
+              populate: { special_offers: true },
             });
 
           if (!product) {
-            console.warn(`⚠️ Product not found: ${item.product.id}`);
+            console.warn(`⚠️ Product not found: ${item.product.documentId}`);
             continue;
           }
 
           const price = Number(product.Price) || 0;
-          const quantity = Number(item.quantity) || 0;
+          const quantity = Number(item.quantity) || 1;
+          const { discountedPrice } =
+            calculateDiscountedPrice({
+              ...product,
+              price,
+              special_offers: product.special_offers || [],
+            });
 
-          const discountedPrice = calculateDiscountedPrice({
-            ...product,
-            price,
-            special_offers: product.special_offers || [], // 👈 use snake_case to match function
-          });
+          const itemSubtotal = price * quantity;
+          const itemTotal = discountedPrice * quantity;
+          const itemDiscount = itemSubtotal - itemTotal;
 
-          totalAmount += discountedPrice * quantity;
+          subtotal += itemSubtotal;
+          discount_total += itemDiscount;
+          totalAmount += itemTotal;
         }
 
         if (totalAmount <= 0)
@@ -302,16 +347,14 @@ export default factories.createCoreController(
           });
         }
 
-        // 3️⃣ Validate and attach payment method
+        // 3️⃣ Validate payment method
         const paymentMethod =
           await stripe.paymentMethods.retrieve(paymentMethodId);
         if (
           paymentMethod.customer &&
           paymentMethod.customer !== stripeCustomerId
         ) {
-          throw new Error(
-            `Payment method already belongs to another customer (${paymentMethod.customer}).`
-          );
+          throw new Error("Payment method belongs to another customer.");
         }
 
         if (!paymentMethod.customer) {
@@ -324,64 +367,83 @@ export default factories.createCoreController(
           invoice_settings: { default_payment_method: paymentMethodId },
         });
 
-        // 4️⃣ Create order safely
-        let order;
-        try {
-          order = await strapi.entityService.create("api::order.order", {
+        // 4️⃣ Create Address + Phone records
+        const phoneRecord = await strapi.entityService.create(
+          "api::phone.phone",
+          {
             data: {
-              TotalAmount: totalAmount,
-              ShippingAddress: JSON.stringify(shippingAddress),
-              order_status: "Pending",
-              user: user.id,
+              number: shippingAddress.phone.number,
+              dailcode: shippingAddress.phone.dialCode,
+              countryCode: shippingAddress.phone.countryCode,
             },
-          });
-
-          // Safety check
-          if (!order || (!order.id && !order.documentId)) {
-            throw new Error(
-              "Order was not created properly (missing id/documentId)"
-            );
           }
+        );
 
-          // Now create order items
-          for (const item of cartItems) {
-            // Determine the actual product ID
-            const productId = item.product?.documentId; // in case product is just a string
-
-            if (!productId) {
-              console.warn("⚠️ Missing product ID for cart item:", item);
-              continue;
-            }
-
-            const productRecord = await strapi.db
-              .query("api::product.product")
-              .findOne({
-                where: { documentId: productId }, // use documentId if that's your main identifier
-              });
-
-            if (!productRecord) {
-              console.error("❌ Product not found for ID:", productId);
-              continue;
-            }
-
-            const data = {
-              Quantity: item.quantity,
-              UnitPrice: String(Number(productRecord.Price).toFixed(2)),
-              product: productRecord.documentId,
-              order: order.documentId, // make sure `order` is defined
-            };
-
-            await strapi.entityService.create("api::order-item.order-item", {
-              data: data,
-            });
+        const addressRecord = await strapi.entityService.create(
+          "api::address.address",
+          {
+            data: {
+              ...shippingAddress,
+              phone: phoneRecord.documentId,
+            },
           }
-        } catch (err) {
-          console.error("❌ Error while creating order or items:", err);
-          ctx.response.status = 500;
-          return { error: err.message };
+        );
+
+        // 5️⃣ Create Order
+        const order = await strapi.entityService.create("api::order.order", {
+          data: {
+            subtotal: subtotal.toFixed(2),
+            discount_total: discount_total.toFixed(2),
+            Total: totalAmount.toFixed(2),
+            order_status: "Pending",
+            user: user.id,
+            address: addressRecord.documentId,
+          },
+        });
+
+        // Safety check
+        if (!order || (!order.id && !order.documentId)) {
+          throw new Error("Order was not created properly");
         }
 
-        // 5️⃣ Create payment intent
+        // 6️⃣ Create order items
+        for (const item of cartItems) {
+          const productRecord = await strapi.db
+            .query("api::product.product")
+            .findOne({
+              where: { documentId: item.product.documentId },
+              populate: { special_offers: { populate: ["localizations"] } },
+            });
+
+          if (!productRecord) continue;
+
+          const { discountedPrice, discountAmount } =
+            calculateDiscountedPrice({
+              ...productRecord,
+              price: Number(productRecord.Price),
+              special_offers: productRecord.special_offers || [],
+            });
+
+          const quantity = Number(item.quantity) || 1;
+          const unitPrice = Number(productRecord.Price);
+          const itemSubtotal = unitPrice * quantity;
+          const itemTotal = discountedPrice * quantity;
+
+          await strapi.entityService.create("api::order-item.order-item", {
+            data: {
+              Quantity: quantity,
+              UnitPrice: unitPrice.toFixed(2),
+              subtotal: itemSubtotal.toFixed(2),
+              total: itemTotal.toFixed(2),
+              discount_value: discountAmount.toFixed(2),
+              product: productRecord.documentId,
+              selected_color: item.selectedColor?.documentId,
+              order: order.documentId,
+            },
+          });
+        }
+
+        // 7️⃣ Create Stripe Payment Intent
         const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(totalAmount * 100),
           currency: "egp",
@@ -392,14 +454,30 @@ export default factories.createCoreController(
           metadata: { orderId: order.documentId },
         });
 
+        // 8️⃣ Save payment records
+        const paymentMethodRecord = await strapi.entityService.create(
+          "api::payment-method.payment-method",
+          {
+            data: {
+              brand: paymentMethod.card?.brand || "unknown",
+              last4: paymentMethod.card?.last4 || "",
+              exp_month: paymentMethod.card?.exp_month || 0,
+              exp_year: paymentMethod.card?.exp_year || 0,
+              token: paymentMethod.id,
+            },
+          }
+        );
+
         await strapi.entityService.create("api::payment.payment", {
           data: {
-            Amount: totalAmount,
-            payment_status: "processing", // أول ما نعمل السجل قبل webhook
-            PaymentMethod: "Card",
-            order: order.documentId, // اربطه بالـ order
+            Amount: totalAmount.toFixed(2),
+            payment_status: "processing",
+            payment_method: paymentMethodRecord.documentId,
+            order: order.documentId,
           },
         });
+
+        // ✅ Final response
         return {
           success: paymentIntent.status === "succeeded",
           paymentIntentId: paymentIntent.id,

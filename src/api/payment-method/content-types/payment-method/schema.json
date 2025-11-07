@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "payment_methods",
+  "info": {
+    "singularName": "payment-method",
+    "pluralName": "payment-methods",
+    "displayName": "PaymentMethod"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "brand": {
+      "type": "string"
+    },
+    "last4": {
+      "type": "string",
+      "maxLength": 4
+    },
+    "exp_month": {
+      "type": "integer"
+    },
+    "exp_year": {
+      "type": "integer"
+    },
+    "token": {
+      "type": "text"
+    },
+    "payments": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::payment.payment",
+      "mappedBy": "payment_method"
+    }
+  }
+}

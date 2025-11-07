@@ -103,6 +103,11 @@
       "relation": "oneToOne",
       "target": "api::phone.phone",
       "mappedBy": "user"
+    },
+    "payment_methods": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::payment-method.payment-method"
     }
   }
 }

@@ -644,6 +644,7 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    discount_value: Schema.Attribute.Decimal;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -654,6 +655,12 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
     product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
     Quantity: Schema.Attribute.Integer & Schema.Attribute.Required;
+    selected_color: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::product-color.product-color'
+    >;
+    subtotal: Schema.Attribute.Decimal;
+    total: Schema.Attribute.Decimal;
     UnitPrice: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -672,9 +679,11 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    address: Schema.Attribute.Relation<'oneToOne', 'api::address.address'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    discount_total: Schema.Attribute.Decimal;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::order.order'> &
       Schema.Attribute.Private;
@@ -689,8 +698,8 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       Schema.Attribute.DefaultTo<'Pending'>;
     payment: Schema.Attribute.Relation<'oneToOne', 'api::payment.payment'>;
     publishedAt: Schema.Attribute.DateTime;
-    ShippingAddress: Schema.Attribute.JSON & Schema.Attribute.Required;
-    TotalAmount: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    subtotal: Schema.Attribute.Decimal;
+    Total: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -698,6 +707,43 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       'manyToOne',
       'plugin::users-permissions.user'
     >;
+  };
+}
+
+export interface ApiPaymentMethodPaymentMethod
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'payment_methods';
+  info: {
+    displayName: 'PaymentMethod';
+    pluralName: 'payment-methods';
+    singularName: 'payment-method';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    brand: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    exp_month: Schema.Attribute.Integer;
+    exp_year: Schema.Attribute.Integer;
+    last4: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 4;
+      }>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::payment-method.payment-method'
+    > &
+      Schema.Attribute.Private;
+    payments: Schema.Attribute.Relation<'oneToMany', 'api::payment.payment'>;
+    publishedAt: Schema.Attribute.DateTime;
+    token: Schema.Attribute.Text;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -723,14 +769,15 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     order: Schema.Attribute.Relation<'oneToOne', 'api::order.order'>;
+    payment_method: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::payment-method.payment-method'
+    >;
     payment_status: Schema.Attribute.Enumeration<
       ['processing', 'succeeded', 'failed']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'processing'>;
-    PaymentMethod: Schema.Attribute.Enumeration<['Cash', 'Card']> &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'Cash'>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -812,6 +859,10 @@ export interface ApiProductColorProductColor
           localized: true;
         };
       }>;
+    order_items: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::order-item.order-item'
+    >;
     products: Schema.Attribute.Relation<'manyToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
@@ -1610,6 +1661,10 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
+    payment_methods: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::payment-method.payment-method'
+    >;
     phone: Schema.Attribute.Relation<'oneToOne', 'api::phone.phone'>;
     provider: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
@@ -1650,6 +1705,7 @@ declare module '@strapi/strapi' {
       'api::category.category': ApiCategoryCategory;
       'api::order-item.order-item': ApiOrderItemOrderItem;
       'api::order.order': ApiOrderOrder;
+      'api::payment-method.payment-method': ApiPaymentMethodPaymentMethod;
       'api::payment.payment': ApiPaymentPayment;
       'api::phone.phone': ApiPhonePhone;
       'api::product-color.product-color': ApiProductColorProductColor;

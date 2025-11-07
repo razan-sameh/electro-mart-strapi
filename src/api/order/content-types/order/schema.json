@@ -11,7 +11,7 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "TotalAmount": {
+    "Total": {
       "type": "decimal",
       "required": true
     },
@@ -44,9 +44,16 @@
       "target": "api::payment.payment",
       "mappedBy": "order"
     },
-    "ShippingAddress": {
-      "type": "json",
-      "required": true
+    "address": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::address.address"
+    },
+    "subtotal": {
+      "type": "decimal"
+    },
+    "discount_total": {
+      "type": "decimal"
     }
   }
 }
