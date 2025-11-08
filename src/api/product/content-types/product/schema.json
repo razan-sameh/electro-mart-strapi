@@ -138,6 +138,12 @@
       "relation": "oneToOne",
       "target": "api::buy-now.buy-now",
       "mappedBy": "product"
+    },
+    "wishlist_items": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::wishlist-item.wishlist-item",
+      "mappedBy": "product"
     }
   }
 }

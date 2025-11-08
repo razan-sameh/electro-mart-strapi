@@ -108,6 +108,12 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::payment-method.payment-method"
+    },
+    "wishlist": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::wishlist.wishlist",
+      "inversedBy": "users_permissions_user"
     }
   }
 }

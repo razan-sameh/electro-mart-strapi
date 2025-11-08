@@ -56,6 +56,12 @@
       "relation": "oneToMany",
       "target": "api::order-item.order-item",
       "mappedBy": "selected_color"
+    },
+    "wishlist_items": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::wishlist-item.wishlist-item",
+      "mappedBy": "product_color"
     }
   }
 }

@@ -868,6 +868,10 @@ export interface ApiProductColorProductColor
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    wishlist_items: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::wishlist-item.wishlist-item'
+    >;
   };
 }
 
@@ -977,6 +981,10 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    wishlist_items: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::wishlist-item.wishlist-item'
+    >;
   };
 }
 
@@ -1175,6 +1183,75 @@ export interface ApiSpecificationValueSpecificationValue
           localized: true;
         };
       }>;
+  };
+}
+
+export interface ApiWishlistItemWishlistItem
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'wishlist_items';
+  info: {
+    displayName: 'Wishlist Item';
+    pluralName: 'wishlist-items';
+    singularName: 'wishlist-item';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::wishlist-item.wishlist-item'
+    > &
+      Schema.Attribute.Private;
+    product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'>;
+    product_color: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::product-color.product-color'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    wishlist: Schema.Attribute.Relation<'manyToOne', 'api::wishlist.wishlist'>;
+  };
+}
+
+export interface ApiWishlistWishlist extends Struct.CollectionTypeSchema {
+  collectionName: 'wishlists';
+  info: {
+    displayName: 'Wishlist';
+    pluralName: 'wishlists';
+    singularName: 'wishlist';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::wishlist.wishlist'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    users_permissions_user: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    wishlist_items: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::wishlist-item.wishlist-item'
+    >;
   };
 }
 
@@ -1684,6 +1761,7 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 3;
       }>;
+    wishlist: Schema.Attribute.Relation<'oneToOne', 'api::wishlist.wishlist'>;
   };
 }
 
@@ -1714,6 +1792,8 @@ declare module '@strapi/strapi' {
       'api::special-offer.special-offer': ApiSpecialOfferSpecialOffer;
       'api::specification-type.specification-type': ApiSpecificationTypeSpecificationType;
       'api::specification-value.specification-value': ApiSpecificationValueSpecificationValue;
+      'api::wishlist-item.wishlist-item': ApiWishlistItemWishlistItem;
+      'api::wishlist.wishlist': ApiWishlistWishlist;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
