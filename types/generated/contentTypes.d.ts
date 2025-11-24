@@ -381,7 +381,7 @@ export interface ApiAddressAddress extends Struct.CollectionTypeSchema {
     singularName: 'address';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   pluginOptions: {
     i18n: {
@@ -883,7 +883,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     singularName: 'product';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   pluginOptions: {
     i18n: {
@@ -996,7 +996,7 @@ export interface ApiReviewReview extends Struct.CollectionTypeSchema {
     singularName: 'review';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     Comment: Schema.Attribute.Text & Schema.Attribute.Required;
@@ -1019,12 +1019,11 @@ export interface ApiReviewReview extends Struct.CollectionTypeSchema {
           min: 1;
         },
         number
-      > &
-      Schema.Attribute.DefaultTo<1>;
+      >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    users_permissions_user: Schema.Attribute.Relation<
+    user: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'
     >;

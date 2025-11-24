@@ -78,12 +78,6 @@
       "target": "api::cart.cart",
       "mappedBy": "users_permissions_user"
     },
-    "reviews": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::review.review",
-      "mappedBy": "users_permissions_user"
-    },
     "stripeCustomerId": {
       "type": "text"
     },
@@ -114,6 +108,12 @@
       "relation": "oneToOne",
       "target": "api::wishlist.wishlist",
       "inversedBy": "users_permissions_user"
+    },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
+      "mappedBy": "user"
     }
   }
 }

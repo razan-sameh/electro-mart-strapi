@@ -7,7 +7,7 @@
     "displayName": "Product"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {
     "i18n": {
@@ -91,12 +91,6 @@
       "target": "api::cart-item.cart-item",
       "mappedBy": "product"
     },
-    "reviews": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::review.review",
-      "mappedBy": "product"
-    },
     "specification_values": {
       "type": "relation",
       "relation": "manyToMany",
@@ -143,6 +137,12 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::wishlist-item.wishlist-item",
+      "mappedBy": "product"
+    },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
       "mappedBy": "product"
     }
   }
