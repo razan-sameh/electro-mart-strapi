@@ -1,19 +1,17 @@
 export default {
   routes: [
-    // ✅ Webhook route (no auth)
     {
       method: "POST",
       path: "/payment/webhook",
-      handler: "payment.webhook",
+      handler: "api::payment.payment.webhook",
       config: {
         auth: false, // 🔥 Stripe doesn't use JWT
       },
     },
-    // ✅ Default CRUD routes (with auth)
     {
       method: "GET",
       path: "/payments",
-      handler: "payment.find",
+      handler: "api::payment.payment.find",
       config: {
         auth: {
           required: true,
@@ -23,7 +21,7 @@ export default {
     {
       method: "GET",
       path: "/payments/:id",
-      handler: "payment.findOne",
+      handler: "api::payment.payment.findOne",
       config: {
         auth: {
           required: true,

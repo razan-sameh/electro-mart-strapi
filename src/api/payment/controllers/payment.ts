@@ -73,70 +73,81 @@ export default factories.createCoreController(
 
       return { data: entity };
     },
-
-    // ✅ Webhook handler
     async webhook(ctx) {
-      console.log("🔔 Webhook received:", ctx.request.method, ctx.request.url);
+      // 1. استخرج الـ Raw Body باستخدام الـ Symbol الخاص
+      const rawBody = ctx.request.body[Symbol.for("unparsedBody")];
 
-      const sig = ctx.request.headers["stripe-signature"];
-      
-      // Get raw body from request
-      const rawBody = (ctx.request as any).rawBody || ctx.request.body;
+      // 2. استخرج التوقيع من الـ Headers
+      const signature = ctx.request.headers["stripe-signature"];
 
-      if (!sig) {
-        ctx.status = 400;
-        ctx.body = { error: "Missing signature" };
-        return;
-      }
+      // 3. استخرج الـ Endpoint Secret الخاص بالـ Webhook من إعدادات Stripe لديك
+      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-      if (!rawBody) {
-        ctx.status = 400;
-        ctx.body = { error: "Missing raw body" };
-        return;
-      }
-
-      let event: Stripe.Event;
-      try {
-        // If rawBody is an object, stringify it; if it's already a string/buffer, use it
-        const payload = typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody);
-        
-        event = stripe.webhooks.constructEvent(
-          payload,
-          sig,
-          process.env.STRIPE_WEBHOOK_SECRET!
+      if (!rawBody || !signature || !endpointSecret) {
+        return ctx.badRequest(
+          "Missing required data for signature verification."
         );
-        console.log("✅ Webhook verified:", event.type);
-      } catch (err: any) {
-        console.error("⚠️ Signature verification failed:", err.message);
-        ctx.status = 400;
-        ctx.body = { error: `Webhook Error: ${err.message}` };
-        return;
       }
 
+      let event;
+
+      try {
+        // 4. استخدم Stripe SDK لبناء الحدث والتحقق من التوقيع في خطوة واحدة
+        event = stripe.webhooks.constructEvent(
+          rawBody, // 👈 هنا نستخدم النص الخام (raw string)
+          signature,
+          endpointSecret
+        );
+      } catch (err) {
+        // إذا فشل التحقق من التوقيع (مثلاً: الختم الزمني قديم أو البيانات مُعدلة)
+        console.error(`Webhook signature verification failed.`, err.message);
+        return ctx.unauthorized("Webhook signature verification failed.");
+      }
+
+      // قم بتنفيذ منطق عملك هنا (مثلاً: تحديث حالة طلب في قاعدة البيانات)
       try {
         switch (event.type) {
           case "payment_intent.succeeded": {
             const paymentIntent = event.data.object as Stripe.PaymentIntent;
             const orderId = paymentIntent.metadata?.orderId;
-            console.log(`💰 Payment succeeded for order: ${orderId}`);
 
-            if (orderId) {
-              const payment = await strapi.db
-                .query("api::payment.payment")
-                .findOne({ where: { order: orderId } });
+            if (!orderId) {
+              console.error("❌ No orderId in metadata!");
+              break;
+            }
 
-              if (payment) {
-                await strapi.db.query("api::payment.payment").update({
-                  where: { id: payment.id },
-                  data: { payment_status: "succeeded" },
-                });
+            const payment = await strapi.db
+              .query("api::payment.payment")
+              .findOne({
+                where: { order: { documentId: orderId } },
+                populate: { order: true },
+              });
 
-                // Also update the order status
-                await strapi.db.query("api::order.order").update({
-                  where: { documentId: orderId },
-                  data: { order_status: "Pending" }, // or "Processing"
-                });
-              }
+            if (!payment) {
+              console.error("❌ Payment not found for order:", orderId);
+              break;
+            }
+
+            // Step 2: Update the payment
+            try {
+              await strapi.db.query("api::payment.payment").update({
+                where: { id: payment.id },
+                data: { payment_status: "succeeded" },
+              });
+            } catch (updateErr: any) {
+              console.error("❌ Error updating payment:", updateErr.message);
+              console.error("   Stack:", updateErr.stack);
+            }
+
+            // Step 3: Update the order
+            try {
+              await strapi.db.query("api::order.order").update({
+                where: { documentId: orderId },
+                data: { order_status: "Delivered" },
+              });
+            } catch (updateErr: any) {
+              console.error("❌ Error updating order:", updateErr.message);
+              console.error("   Stack:", updateErr.stack);
             }
             break;
           }
@@ -144,40 +155,57 @@ export default factories.createCoreController(
           case "payment_intent.payment_failed": {
             const paymentIntent = event.data.object as Stripe.PaymentIntent;
             const orderId = paymentIntent.metadata?.orderId;
-            console.log(`❌ Payment failed for order: ${orderId}`);
 
-            if (orderId) {
-              const payment = await strapi.db
-                .query("api::payment.payment")
-                .findOne({ where: { order: orderId } });
+            if (!orderId) {
+              console.error("❌ No orderId in metadata!");
+              break;
+            }
 
-              if (payment) {
+            const payment = await strapi.db
+              .query("api::payment.payment")
+              .findOne({
+                where: { order: { documentId: orderId } },
+                populate: { order: true },
+              });
+
+            if (payment) {
+              try {
                 await strapi.db.query("api::payment.payment").update({
                   where: { id: payment.id },
                   data: { payment_status: "failed" },
                 });
+              } catch (err: any) {
+                console.error("❌ Error updating payment:", err.message);
+              }
 
-                // Optionally update order status
+              try {
                 await strapi.db.query("api::order.order").update({
                   where: { documentId: orderId },
                   data: { order_status: "Cancelled" },
                 });
+              } catch (err: any) {
+                console.error("❌ Error updating order:", err.message);
               }
+            } else {
+              console.error("❌ Payment not found for order:", orderId);
             }
             break;
           }
 
           default:
-            console.log(`ℹ️ Unhandled event type: ${event.type}`);
         }
 
         ctx.status = 200;
         ctx.body = { received: true };
       } catch (err: any) {
         console.error("❌ Error processing webhook:", err.message);
+        console.error("   Stack:", err.stack);
         ctx.status = 500;
         ctx.body = { error: "Internal server error" };
       }
+
+      // أرسل رد 200 OK إلى Stripe
+      ctx.send({ received: true });
     },
   })
 );
