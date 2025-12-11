@@ -209,7 +209,11 @@ export default factories.createCoreController(
                   },
                 },
               },
-              selected_color: true,
+              selected_color: {
+                populate: {
+                  localizations: true, // ✅ this adds localization for the color
+                },
+              },
             },
           },
         },
@@ -258,8 +262,15 @@ export default factories.createCoreController(
 
           item.product = localizedProduct;
         }
-      }
 
+        const color = item.selected_color;
+        if (color?.locale !== locale) {
+          const localizedColor = color?.localizations?.find(
+            (loc: any) => loc.locale === locale
+          );
+          if (localizedColor) item.selected_color = localizedColor;
+        }
+      }
       return { data: entity };
     },
     // ----------------------
