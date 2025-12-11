@@ -27,25 +27,35 @@ function calculateDiscountedPrice(product: any) {
 
   return {
     discountedPrice, // السعر بعد الخصم
-    discountAmount,  // المبلغ المخصوم فعلاً
+    discountAmount, // المبلغ المخصوم فعلاً
   };
 }
-
 
 export default factories.createCoreController(
   "api::order.order",
   ({ strapi }) => ({
     // ✅ ADD DEFAULT CRUD METHODS
     async find(ctx) {
-      // Only allow users to see their own orders
       const user = ctx.state.user;
       if (!user) return ctx.unauthorized("You must be logged in");
 
       const locale = ctx.query.locale || "en";
+      const page = Number(ctx.query.page) || 1;
+      const pageSize = Number(ctx.query.pageSize) || 5;
+      const order_status = ctx.query.order_status as string;
+      // Base filter: user
+      const filters: any = { user: { id: user.id } };
 
-      // Fetch orders with full population
+      // Add status filter only if user clicked Current or Delivered
+      if (order_status && order_status.trim() !== "") {
+        filters.order_status = { $eq: order_status };
+      }
+
+      // Fetch paginated orders
       const orders = await strapi.entityService.findMany("api::order.order", {
-        filters: { user: { id: user.id } },
+        filters,
+        start: (page - 1) * pageSize,
+        limit: pageSize,
         populate: {
           payment: {
             populate: {
@@ -77,7 +87,39 @@ export default factories.createCoreController(
         },
       });
 
-      // Post-process: Replace products with localized versions
+      // TOTAL counts for each tab
+      const allCount = await strapi.entityService.count("api::order.order", {
+        filters: { user: { id: user.id } },
+      });
+
+      const pendingCount = await strapi.entityService.count(
+        "api::order.order",
+        {
+          filters: { user: { id: user.id }, order_status: { $eq: "Pending" } },
+        }
+      );
+
+      const deliveredCount = await strapi.entityService.count(
+        "api::order.order",
+        {
+          filters: {
+            user: { id: user.id },
+            order_status: { $eq: "Delivered" },
+          },
+        }
+      );
+
+      // FIX PAGINATION BASED ON ACTIVE FILTER
+      const totalForPagination =
+        order_status === "Pending"
+          ? pendingCount
+          : order_status === "Delivered"
+            ? deliveredCount
+            : allCount;
+
+      const pageCount = Math.ceil(totalForPagination / pageSize);
+
+      // Localization logic
       const ordersArray = Array.isArray(orders) ? orders : [orders];
 
       for (const order of ordersArray) {
@@ -118,10 +160,15 @@ export default factories.createCoreController(
         data: ordersArray,
         meta: {
           pagination: {
-            page: 1,
-            pageSize: ordersArray.length,
-            pageCount: 1,
-            total: ordersArray.length,
+            page,
+            pageSize,
+            pageCount,
+            total: totalForPagination,
+          },
+          counts: {
+            all: allCount,
+            pending: pendingCount,
+            delivered: deliveredCount,
           },
         },
       };
@@ -313,12 +360,11 @@ export default factories.createCoreController(
 
           const price = Number(product.Price) || 0;
           const quantity = Number(item.quantity) || 1;
-          const { discountedPrice } =
-            calculateDiscountedPrice({
-              ...product,
-              price,
-              special_offers: product.special_offers || [],
-            });
+          const { discountedPrice } = calculateDiscountedPrice({
+            ...product,
+            price,
+            special_offers: product.special_offers || [],
+          });
 
           const itemSubtotal = price * quantity;
           const itemTotal = discountedPrice * quantity;
@@ -417,12 +463,11 @@ export default factories.createCoreController(
 
           if (!productRecord) continue;
 
-          const { discountedPrice, discountAmount } =
-            calculateDiscountedPrice({
-              ...productRecord,
-              price: Number(productRecord.Price),
-              special_offers: productRecord.special_offers || [],
-            });
+          const { discountedPrice, discountAmount } = calculateDiscountedPrice({
+            ...productRecord,
+            price: Number(productRecord.Price),
+            special_offers: productRecord.special_offers || [],
+          });
 
           const quantity = Number(item.quantity) || 1;
           const unitPrice = Number(productRecord.Price);
