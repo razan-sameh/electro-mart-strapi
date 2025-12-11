@@ -5,50 +5,94 @@ export default factories.createCoreController(
   "api::wishlist.wishlist",
   ({ strapi }) => ({
     // GET /wishlist/me - Get user's wishlist
-    async getMyWishlist(ctx) {
-      const user = ctx.state.user;
+async getMyWishlist(ctx) {
+  const user = ctx.state.user;
 
-      if (!user) {
-        return ctx.unauthorized("You must be authenticated");
-      }
+  if (!user) {
+    return ctx.unauthorized("You must be authenticated");
+  }
 
-      let wishlists = (await strapi.entityService.findMany(
-        "api::wishlist.wishlist",
-        {
-          filters: { users_permissions_user: user.id },
+  const locale = ctx.query.locale || "en";
+
+  let wishlists = (await strapi.entityService.findMany(
+    "api::wishlist.wishlist",
+    {
+      filters: { users_permissions_user: user.id },
+      populate: {
+        wishlist_items: {
           populate: {
-            wishlist_items: {
+            product: {
               populate: {
-                product: {
-                  populate: {
-                    localizations: true,
-                    ImageURL: true,
-                    brand: true,
-                    special_offers: {
-                      populate: ["localizations"],
-                    },
-                  },
-                },
-                product_color: {
+                localizations: true,
+                ImageURL: true,
+                brand: true,
+                special_offers: {
                   populate: ["localizations"],
                 },
               },
             },
+            product_color: {
+              populate: {
+                localizations: true, // populate localizations for color
+              },
+            },
           },
-        }
-      )) as Wishlist[];
+        },
+      },
+    }
+  )) as Wishlist[];
 
-      let wishlist = Array.isArray(wishlists) ? wishlists[0] : wishlists;
+  let wishlist = Array.isArray(wishlists) ? wishlists[0] : wishlists;
 
-      if (!wishlist) {
-        wishlist = (await strapi.entityService.create(
-          "api::wishlist.wishlist",
-          { data: { users_permissions_user: user.id } }
-        )) as Wishlist;
+  if (!wishlist) {
+    wishlist = (await strapi.entityService.create(
+      "api::wishlist.wishlist",
+      { data: { users_permissions_user: user.id } }
+    )) as Wishlist;
+  }
+
+  // ✅ Replace with localized versions
+  const wishlistItems = wishlist.wishlist_items || [];
+  for (const item of wishlistItems) {
+    // Product localization
+    const product = item.product;
+    if (product?.locale !== locale) {
+      const localized = product?.localizations?.find(
+        (loc: any) => loc.locale === locale
+      );
+      if (localized) {
+        const localizedProduct = await strapi.db.query("api::product.product").findOne({
+          where: { id: localized.id },
+          populate: {
+            localizations: true,
+            ImageURL: true,
+            brand: true,
+            special_offers: { populate: ["localizations"] },
+          },
+        });
+        item.product = localizedProduct;
       }
+    }
 
-      return { data: wishlist };
-    },
+    // Product color localization
+    const color = item.product_color;
+    if (color?.locale !== locale) {
+      const localizedColor = color?.localizations?.find(
+        (loc: any) => loc.locale === locale
+      );
+      if (localizedColor) {
+        const localizedColorRecord = await strapi.db.query("api::product-color.product-color").findOne({
+          where: { id: localizedColor.id },
+          populate: { localizations: true },
+        });
+        item.product_color = localizedColorRecord;
+      }
+    }
+  }
+
+  return { data: wishlist };
+},
+
 
     // POST /wishlist/items - Add item to wishlist
     async addItem(ctx) {
