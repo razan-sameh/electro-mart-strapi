@@ -152,7 +152,7 @@ export default factories.createCoreController(
 
         // ✅ Get numeric IDs from documentIds
         const product = await strapi.db.query("api::product.product").findOne({
-          where: { documentId: productId },
+          where: { id: productId },
         });
 
         if (!product) {
@@ -172,7 +172,7 @@ export default factories.createCoreController(
           const productColor = await strapi.db
             .query("api::product-color.product-color")
             .findOne({
-              where: { documentId: productColorId },
+              where: { id: productColorId },
             });
 
           if (!productColor) {
