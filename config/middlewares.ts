@@ -1,8 +1,34 @@
 export default [
   'strapi::logger',
   'strapi::errors',
-  'strapi::security',
-  'strapi::cors',
+  {
+    name: 'strapi::security',
+    config: {
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'connect-src': ["'self'", 'https:'],
+          'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+          'media-src': ["'self'", 'data:', 'blob:', 'https:'],
+          upgradeInsecureRequests: null,
+        },
+      },
+    },
+  },
+  {
+    name: 'strapi::cors',
+    config: {
+      enabled: true,
+      origin: [
+        'http://localhost:3000',
+        'https://electro-mart-psi-beryl.vercel.app', // ✅ Add your deployed Next.js URL
+        'https://electro-mart-git-main-razan-samehs-projects.vercel.app',
+        'https://electro-mart-1gpz3svli-razan-samehs-projects.vercel.app'
+      ],
+      credentials: true, // ✅ Important for cookies/JWT
+      headers: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    },
+  },
   'strapi::poweredBy',
   'strapi::query',
   {
