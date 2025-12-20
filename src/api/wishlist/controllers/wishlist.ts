@@ -123,7 +123,7 @@ async getMyWishlist(ctx) {
 
       // Check if product exists
       const product = await strapi.db.query("api::product.product").findOne({
-        where: { documentId: productId },
+        where: { id: productId },
       });
       if (!product) return ctx.notFound("Product not found");
 
@@ -136,7 +136,7 @@ async getMyWishlist(ctx) {
       }
 
       // Check for existing wishlist item
-      const filters: any = { wishlist: wishlist.documentId, product: productId };
+      const filters: any = { wishlist: wishlist.id, product: productId };
       if (productColorId) filters.product_color = productColorId;
 
       const existingItems = (await strapi.entityService.findMany(
@@ -156,9 +156,9 @@ async getMyWishlist(ctx) {
         "api::wishlist-item.wishlist-item",
         {
           data: {
-            wishlist: wishlist.documentId,
+            wishlist: wishlist.id,
             product: productId,
-            product_color: productColorId || undefined,
+            product_color: productColorId,
           },
           populate: {
             product: { populate: ["ImageURL"] },
