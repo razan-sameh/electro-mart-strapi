@@ -149,7 +149,7 @@ export default factories.createCoreController(
         const productColor = await strapi.db
           .query("api::product-color.product-color")
           .findOne({
-            where: { id: productColorId },
+            where: { documentId: productColorId },
           });
           console.log('productColor',{
             productColor:productColor
