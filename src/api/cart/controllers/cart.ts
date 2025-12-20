@@ -108,7 +108,9 @@ export default factories.createCoreController(
       const { productId, quantity, productColorId } = ctx.request.body;
 
       if (!productId || !quantity || !productColorId) {
-        return ctx.badRequest("productId, quantity and productColorId are required");
+        return ctx.badRequest(
+          "productId, quantity and productColorId are required"
+        );
       }
 
       if (quantity < 1) {
@@ -145,85 +147,35 @@ export default factories.createCoreController(
         return ctx.notFound("Product not found");
       }
 
-      // if (productColorId) {
-        const productColor = await strapi.db
-          .query("api::product-color.product-color")
-          .findOne({
-            where: { documentId: productColorId },
-          });
-          console.log('productColor',{
-            productColor:productColor
-          });
-          console.log('productColorId',{
-            productColorId:productColorId
-          });
-          
-        if (!productColor) {
-          return ctx.notFound("Product color not found");
+      const productColor = await strapi.db
+        .query("api::product-color.product-color")
+        .findOne({
+          where: { documentId: productColorId },
+        });
+
+      if (!productColor) {
+        return ctx.notFound("Product color not found");
+      }
+
+      const created = await strapi.entityService.create(
+        "api::cart-item.cart-item",
+        {
+          data: {
+            cart: cart.id, // ✅ must be numeric ID
+            product: productId,
+            Quantity: quantity,
+            product_color: productColorId,
+          },
+          populate: {
+            product: {
+              populate: ["ImageURL"], // ✅ populate product relations
+            },
+            product_color: true,
+          },
         }
-      // }
+      );
 
-      // const filters: any = {
-      //   cart: cart.id,
-      //   product: productId,
-      // };
-
-      // if (productColorId) {
-      //   filters.product_color = productColorId;
-      // }
-
-      // const existingItems = (await strapi.entityService.findMany(
-      //   "api::cart-item.cart-item",
-      //   {
-      //     filters,
-      //   }
-      // )) as CartItem[];
-
-      // const existingItem = Array.isArray(existingItems)
-      //   ? existingItems[0]
-      //   : existingItems;
-
-      // if (existingItem) {
-      //   const updated = (await strapi.entityService.update(
-      //     "api::cart-item.cart-item",
-      //     existingItem.id,
-      //     {
-      //       data: { Quantity: existingItem.Quantity + quantity },
-      //     }
-      //   )) as CartItem;
-      //   return { data: updated, message: "Item quantity updated" };
-      // } else {
-        // const itemData: any = {
-        //   cart: cart.id,
-        //   product: product.id,
-        //   Quantity: quantity,
-        //   product_color:productColor.id
-        // };
-
-        // if (productColorId) {
-        //   itemData.product_color = productColorId;
-        // }
-
-        const created = await strapi.entityService.create(
-          "api::cart-item.cart-item",
-          {
-            data: {
-              cart: cart.id, // ✅ must be numeric ID
-              product: productId,
-              Quantity: quantity,
-              product_color: productColorId ,
-            },
-            populate: {
-              product: {
-                populate: ["ImageURL"], // ✅ populate product relations
-              },
-              product_color: true,
-            },
-          }
-        );
-
-        return { data: created, message: "Item added to cart" };
-      // }
+      return { data: created, message: "Item added to cart" };
     },
 
     async updateQuantity(ctx) {
