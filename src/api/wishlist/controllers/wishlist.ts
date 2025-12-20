@@ -137,7 +137,7 @@ export default factories.createCoreController(
       if (productColorId) {
         const productColor = await strapi.db
           .query("api::product-color.product-color")
-          .findOne({ where: { documentId: productColorId } });
+          .findOne({ where: { id: productColorId } });
 
         if (!productColor) return ctx.notFound("Product color not found");
       }
