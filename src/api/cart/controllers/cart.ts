@@ -99,184 +99,123 @@ export default factories.createCoreController(
       return { data: cart };
     },
     async addItem(ctx) {
-      try {
-        const user = ctx.state.user;
+      const user = ctx.state.user;
 
-        if (!user) {
-          return ctx.unauthorized("You must be authenticated");
-        }
+      if (!user) {
+        return ctx.unauthorized("You must be authenticated");
+      }
 
-        const { productId, quantity, productColorId } = ctx.request.body;
+      const { productId, quantity, productColorId } = ctx.request.body;
 
-        console.log("📦 Add to cart request:", {
-          productId,
-          quantity,
-          productColorId,
-          userId: user.id,
-        });
+      if (!productId || !quantity) {
+        return ctx.badRequest("productId and quantity are required");
+      }
 
-        if (!productId || !quantity) {
-          return ctx.badRequest("productId and quantity are required");
-        }
+      if (quantity < 1) {
+        return ctx.badRequest("Quantity must be at least 1");
+      }
 
-        if (quantity < 1) {
-          return ctx.badRequest("Quantity must be at least 1");
-        }
-
-        // Find user's cart
-        let carts = (await strapi.entityService.findMany("api::cart.cart", {
-          filters: { users_permissions_user: user.id },
-          populate: {
-            cart_items: {
-              populate: {
-                product: {
-                  populate: ["ImageURL"],
-                },
-                product_color: true,
-              },
-            },
-          },
-        })) as Cart[];
-
-        let cart = Array.isArray(carts) ? carts[0] : carts;
-
-        console.log("🛒 Cart found:", cart ? `Yes (ID: ${cart.id})` : "No");
-
-        // Create cart if doesn't exist
-        if (!cart) {
-          cart = (await strapi.entityService.create("api::cart.cart", {
-            data: { users_permissions_user: user.id },
-          })) as Cart;
-          console.log("✅ New cart created:", cart.id);
-        }
-
-        // ✅ Get numeric IDs from documentIds
-        const product = await strapi.db.query("api::product.product").findOne({
-          where: { id: productId },
-        });
-
-        if (!product) {
-          console.error("❌ Product not found:", productId);
-          return ctx.notFound("Product not found");
-        }
-
-        console.log("✅ Product found:", {
-          documentId: productId,
-          numericId: product.id,
-        });
-
-        let productColorNumericId = null;
-
-        // Verify color if provided
-        if (productColorId) {
-          const productColor = await strapi.db
-            .query("api::product-color.product-color")
-            .findOne({
-              where: { id: productColorId },
-            });
-
-          if (!productColor) {
-            console.error("❌ Product color not found:", productColorId);
-            return ctx.notFound("Product color not found");
-          }
-
-          productColorNumericId = productColor.id;
-          console.log("✅ Product color found:", {
-            documentId: productColorId,
-            numericId: productColorNumericId,
-          });
-        }
-
-        // ✅ Check if item already exists - USE NUMERIC IDs for filtering
-        const filters: any = {
-          cart: cart.id, // numeric ID
-          product: product.id, // ✅ FIXED: Use numeric ID, not documentId
-        };
-
-        if (productColorNumericId) {
-          filters.product_color = productColorNumericId; // ✅ FIXED: Use numeric ID
-        }
-
-        console.log("🔍 Checking for existing item with filters:", filters);
-
-        const existingItems = (await strapi.entityService.findMany(
-          "api::cart-item.cart-item",
-          {
-            filters,
+      let carts = (await strapi.entityService.findMany("api::cart.cart", {
+        filters: { users_permissions_user: user.id },
+        populate: {
+          cart_items: {
             populate: {
               product: {
                 populate: ["ImageURL"],
               },
               product_color: true,
             },
-          }
-        )) as CartItem[];
+          },
+        },
+      })) as Cart[];
 
-        const existingItem = Array.isArray(existingItems)
-          ? existingItems[0]
-          : existingItems;
+      let cart = Array.isArray(carts) ? carts[0] : carts;
 
-        if (existingItem) {
-          console.log("🔄 Updating existing item:", existingItem.id);
+      if (!cart) {
+        cart = (await strapi.entityService.create("api::cart.cart", {
+          data: { users_permissions_user: user.id },
+        })) as Cart;
+      }
 
-          // Update quantity
-          const updated = await strapi.entityService.update(
-            "api::cart-item.cart-item",
-            existingItem.id,
-            {
-              data: { Quantity: existingItem.Quantity + quantity },
-              populate: {
-                product: {
-                  populate: ["ImageURL"],
-                },
-                product_color: true,
-              },
-            }
-          );
+      const product = await strapi.db.query("api::product.product").findOne({
+        where: { id: productId },
+      });
 
-          console.log("✅ Item quantity updated");
-          return ctx.send({ data: updated, message: "Item quantity updated" });
-        } else {
-          console.log("🆕 Creating new cart item");
+      if (!product) {
+        return ctx.notFound("Product not found");
+      }
 
-          // ✅ Create new cart item - Use numeric IDs for relations
-          const itemData: any = {
-            cart: cart.id, // numeric ID
-            product: product.id, // ✅ FIXED: Use numeric ID
-            Quantity: quantity,
-          };
+      if (productColorId) {
+        const productColor = await strapi.db
+          .query("api::product-color.product-color")
+          .findOne({
+            where: { id: productColorId },
+          });
 
-          if (productColorNumericId) {
-            itemData.product_color = productColorNumericId; // ✅ FIXED: Use numeric ID
-          }
-
-          console.log("📝 Creating with data:", itemData);
-
-          const created = await strapi.entityService.create(
-            "api::cart-item.cart-item",
-            {
-              data: itemData,
-              populate: {
-                product: {
-                  populate: ["ImageURL"],
-                },
-                product_color: true,
-              },
-            }
-          );
-
-          console.log("✅ Cart item created:", created.id);
-          return ctx.send({ data: created, message: "Item added to cart" });
+        if (!productColor) {
+          return ctx.notFound("Product color not found");
         }
-      } catch (error: any) {
-        console.error("❌ Error in addItem:");
-        console.error("  Message:", error.message);
-        console.error("  Stack:", error.stack);
+      }
 
-        return ctx.internalServerError("Failed to add item to cart", {
-          error: error.message,
-          details: error.toString(),
-        });
+      const filters: any = {
+        cart: cart.id,
+        product: productId,
+      };
+
+      if (productColorId) {
+        filters.product_color = productColorId;
+      }
+
+      const existingItems = (await strapi.entityService.findMany(
+        "api::cart-item.cart-item",
+        {
+          filters,
+        }
+      )) as CartItem[];
+
+      const existingItem = Array.isArray(existingItems)
+        ? existingItems[0]
+        : existingItems;
+
+      if (existingItem) {
+        const updated = (await strapi.entityService.update(
+          "api::cart-item.cart-item",
+          existingItem.id,
+          {
+            data: { Quantity: existingItem.Quantity + quantity },
+          }
+        )) as CartItem;
+        return { data: updated, message: "Item quantity updated" };
+      } else {
+        const itemData: any = {
+          cart: cart.id,
+          product: product.id,
+          Quantity: quantity,
+        };
+
+        if (productColorId) {
+          itemData.product_color = productColorId;
+        }
+
+        const created = await strapi.entityService.create(
+          "api::cart-item.cart-item",
+          {
+            data: {
+              cart: cart.id, // ✅ must be numeric ID
+              product: productId,
+              Quantity: quantity,
+              product_color: productColorId || undefined,
+            },
+            populate: {
+              product: {
+                populate: ["ImageURL"], // ✅ populate product relations
+              },
+              product_color: true,
+            },
+          }
+        );
+
+        return { data: created, message: "Item added to cart" };
       }
     },
 
