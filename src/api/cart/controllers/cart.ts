@@ -107,8 +107,8 @@ export default factories.createCoreController(
 
       const { productId, quantity, productColorId } = ctx.request.body;
 
-      if (!productId || !quantity) {
-        return ctx.badRequest("productId and quantity are required");
+      if (!productId || !quantity || !productColorId) {
+        return ctx.badRequest("productId, quantity and productColorId are required");
       }
 
       if (quantity < 1) {
@@ -145,57 +145,64 @@ export default factories.createCoreController(
         return ctx.notFound("Product not found");
       }
 
-      if (productColorId) {
+      // if (productColorId) {
         const productColor = await strapi.db
           .query("api::product-color.product-color")
           .findOne({
             where: { id: productColorId },
           });
-
+          console.log('productColor',{
+            productColor:productColor
+          });
+          console.log('productColorId',{
+            productColorId:productColorId
+          });
+          
         if (!productColor) {
           return ctx.notFound("Product color not found");
         }
-      }
+      // }
 
-      const filters: any = {
-        cart: cart.id,
-        product: productId,
-      };
+      // const filters: any = {
+      //   cart: cart.id,
+      //   product: productId,
+      // };
 
-      if (productColorId) {
-        filters.product_color = productColorId;
-      }
+      // if (productColorId) {
+      //   filters.product_color = productColorId;
+      // }
 
-      const existingItems = (await strapi.entityService.findMany(
-        "api::cart-item.cart-item",
-        {
-          filters,
-        }
-      )) as CartItem[];
+      // const existingItems = (await strapi.entityService.findMany(
+      //   "api::cart-item.cart-item",
+      //   {
+      //     filters,
+      //   }
+      // )) as CartItem[];
 
-      const existingItem = Array.isArray(existingItems)
-        ? existingItems[0]
-        : existingItems;
+      // const existingItem = Array.isArray(existingItems)
+      //   ? existingItems[0]
+      //   : existingItems;
 
-      if (existingItem) {
-        const updated = (await strapi.entityService.update(
-          "api::cart-item.cart-item",
-          existingItem.id,
-          {
-            data: { Quantity: existingItem.Quantity + quantity },
-          }
-        )) as CartItem;
-        return { data: updated, message: "Item quantity updated" };
-      } else {
-        const itemData: any = {
-          cart: cart.id,
-          product: product.id,
-          Quantity: quantity,
-        };
+      // if (existingItem) {
+      //   const updated = (await strapi.entityService.update(
+      //     "api::cart-item.cart-item",
+      //     existingItem.id,
+      //     {
+      //       data: { Quantity: existingItem.Quantity + quantity },
+      //     }
+      //   )) as CartItem;
+      //   return { data: updated, message: "Item quantity updated" };
+      // } else {
+        // const itemData: any = {
+        //   cart: cart.id,
+        //   product: product.id,
+        //   Quantity: quantity,
+        //   product_color:productColor.id
+        // };
 
-        if (productColorId) {
-          itemData.product_color = productColorId;
-        }
+        // if (productColorId) {
+        //   itemData.product_color = productColorId;
+        // }
 
         const created = await strapi.entityService.create(
           "api::cart-item.cart-item",
@@ -204,7 +211,7 @@ export default factories.createCoreController(
               cart: cart.id, // ✅ must be numeric ID
               product: productId,
               Quantity: quantity,
-              product_color: productColorId || undefined,
+              product_color: productColorId ,
             },
             populate: {
               product: {
@@ -216,7 +223,7 @@ export default factories.createCoreController(
         );
 
         return { data: created, message: "Item added to cart" };
-      }
+      // }
     },
 
     async updateQuantity(ctx) {
