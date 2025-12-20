@@ -507,7 +507,7 @@ export default factories.createCoreController(
           payment_method: paymentMethodId,
           off_session: true,
           confirm: true,
-          metadata: { orderId: order.documentId },
+          metadata: { orderId: order.id },
         });
 
         // 8️⃣ Save payment records

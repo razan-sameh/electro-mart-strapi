@@ -115,11 +115,12 @@ export default factories.createCoreController(
               console.error("❌ No orderId in metadata!");
               break;
             }
-
+            console.log('orderId',{orderId:orderId});
+            
             const payment = await strapi.db
               .query("api::payment.payment")
               .findOne({
-                where: { order: { documentId: orderId } },
+                where: { order: { id: orderId } },
                 populate: { order: true },
               });
 
@@ -142,7 +143,7 @@ export default factories.createCoreController(
             // Step 3: Update the order
             try {
               await strapi.db.query("api::order.order").update({
-                where: { documentId: orderId },
+                where: { id: orderId },
                 data: { order_status: "Delivered" },
               });
             } catch (updateErr: any) {
@@ -164,7 +165,7 @@ export default factories.createCoreController(
             const payment = await strapi.db
               .query("api::payment.payment")
               .findOne({
-                where: { order: { documentId: orderId } },
+                where: { order: { id: orderId } },
                 populate: { order: true },
               });
 
@@ -180,7 +181,7 @@ export default factories.createCoreController(
 
               try {
                 await strapi.db.query("api::order.order").update({
-                  where: { documentId: orderId },
+                  where: { id: orderId },
                   data: { order_status: "Cancelled" },
                 });
               } catch (err: any) {
