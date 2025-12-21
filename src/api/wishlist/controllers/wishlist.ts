@@ -133,9 +133,9 @@ export default factories.createCoreController(
       console.log("product", { product: product });
 
       if (!product) return ctx.notFound("Product not found");
-
+      let productColor = null
       if (productColorId) {
-        const productColor = await strapi.db
+        productColor = await strapi.db
           .query("api::product-color.product-color")
           .findOne({ where: { id: productColorId } });
 
@@ -166,7 +166,7 @@ export default factories.createCoreController(
           data: {
             wishlist: wishlist.id,
             product: productId,
-            product_color: productColorId,
+            product_color: productColor.documentId,
           },
           populate: {
             product: { populate: ["ImageURL"] },
