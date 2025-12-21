@@ -115,7 +115,6 @@ export default factories.createCoreController(
               console.error("❌ No orderId in metadata!");
               break;
             }
-            console.log('orderId',{orderId:orderId});
             
             const payment = await strapi.db
               .query("api::payment.payment")

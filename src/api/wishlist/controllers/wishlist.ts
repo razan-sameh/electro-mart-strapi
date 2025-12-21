@@ -104,8 +104,6 @@ export default factories.createCoreController(
       if (!user) return ctx.unauthorized("You must be authenticated");
 
       const { productId, productColorId } = ctx.request.body;
-      console.log("productId", { productId: productId });
-      console.log("productColorId", { productColorId: productColorId });
 
       if (!productId) return ctx.badRequest("productId is required");
 
@@ -130,7 +128,6 @@ export default factories.createCoreController(
       const product = await strapi.db.query("api::product.product").findOne({
         where: { id: productId },
       });
-      console.log("product", { product: product });
 
       if (!product) return ctx.notFound("Product not found");
       let productColor = null
@@ -158,7 +155,6 @@ export default factories.createCoreController(
       if (existingItem) {
         return { data: existingItem, message: "Item already in wishlist" };
       }
-      console.log("wishlist", { wishlist: wishlist });
 
       const created = await strapi.entityService.create(
         "api::wishlist-item.wishlist-item",
