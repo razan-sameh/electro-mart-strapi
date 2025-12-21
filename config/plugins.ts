@@ -21,7 +21,7 @@ export default ({ env }) => ({
           icon: 'google',
           key: env('GOOGLE_CLIENT_ID'),
           secret: env('GOOGLE_CLIENT_SECRET'),
-          callback: `${env('STRAPI_URL')}/api/connect/google/callback`,
+          callback: `${env('STRAPI_URL')}/connect/google/callback`,
           scope: ['openid', 'email', 'profile'],
         },
       },
