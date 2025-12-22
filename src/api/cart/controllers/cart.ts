@@ -161,7 +161,7 @@ export default factories.createCoreController(
         "api::cart-item.cart-item",
         {
           data: {
-            cart: cart.id, // ✅ must be numeric ID
+            cart: cart.documentId, // ✅ must be numeric ID
             product: productId,
             Quantity: quantity,
             product_color: productColorId,
